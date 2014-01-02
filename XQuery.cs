@@ -12,12 +12,8 @@ namespace XQuery
 {
     public class XQuery
     {
-        private View View { get; set; }
-        private Activity Activity { get; set; }
-        private View CurrentView { get; set; }
-        private ProgressBar ProgressBar { get; set; }
-        private readonly Boolean _useActivity;
         private readonly Dictionary<int, Bitmap> _imageCache = new Dictionary<int, Bitmap>();
+        private readonly Boolean _useActivity;
 
         public XQuery(View view)
         {
@@ -30,6 +26,11 @@ namespace XQuery
             _useActivity = true;
             Activity = activity;
         }
+
+        private View View { get; set; }
+        private Activity Activity { get; set; }
+        private View CurrentView { get; set; }
+        private ProgressBar ProgressBar { get; set; }
 
         public XQuery Id(int id)
         {
