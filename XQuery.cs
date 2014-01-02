@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 using Android.App;
 using Android.Graphics;
 using Android.Graphics.Drawables;
@@ -16,6 +15,7 @@ namespace XQuery
         private View View { get; set; }
         private Activity Activity { get; set; }
         private View CurrentView { get; set; }
+        private ProgressBar ProgressBar { get; set; }
         private readonly Boolean _useActivity;
         private readonly Dictionary<int, Bitmap> _imageCache = new Dictionary<int, Bitmap>();
 
@@ -73,31 +73,37 @@ namespace XQuery
 
         public XQuery Image(String url)
         {
-            ThreadPool.QueueUserWorkItem(e =>
-            {
-                var response = Unirest.get(url).asBinary();
-                var bitmap = BitmapFactory.DecodeStream(response.Body);
-                CurrentView.Post(() => ((ImageView)CurrentView).SetImageBitmap(bitmap));
-            });
-
-            return this;
+            return Image(url, false);
         }
 
         public XQuery Image(String url, Boolean memCache)
         {
             var hash = url.GetHashCode();
 
-            if (_imageCache.ContainsKey(hash))
+            if (_imageCache.ContainsKey(hash) && memCache)
                 return Image(_imageCache[hash]);
 
+            var progressView = ProgressBar;
+            var imageView = CurrentView;
+            if (progressView != null) progressView.Visibility = ViewStates.Visible;
             ThreadPool.QueueUserWorkItem(e =>
             {
                 var response = Unirest.get(url).asBinary();
                 var bitmap = BitmapFactory.DecodeStream(response.Body);
                 _imageCache.Add(hash, bitmap);
-                Image(bitmap);
-            });
 
+                imageView.Post(() =>
+                {
+                    ((ImageView)imageView).SetImageBitmap(bitmap);
+                    if (progressView != null) progressView.Visibility = ViewStates.Gone;
+                });
+            });
+            return this;
+        }
+
+        public XQuery Progress(int id)
+        {
+            ProgressBar = GetView<ProgressBar>(id);
             return this;
         }
     }
