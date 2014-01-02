@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
 using Android.Graphics;
@@ -70,25 +71,34 @@ namespace XQuery
             return this;
         }
 
-        public async Task<XQuery> Image(String url)
+        public XQuery Image(String url)
         {
-            var response = await Unirest.get(url).asBinaryAsync();
-            var bitmap = await BitmapFactory.DecodeStreamAsync(response.Body);
-            ((ImageView)CurrentView).SetImageBitmap(bitmap);
+            ThreadPool.QueueUserWorkItem(e =>
+            {
+                var response = Unirest.get(url).asBinary();
+                var bitmap = BitmapFactory.DecodeStream(response.Body);
+                CurrentView.Post(() => ((ImageView)CurrentView).SetImageBitmap(bitmap));
+            });
+
             return this;
         }
 
-        public async Task<XQuery> Image(String url, Boolean memCache)
+        public XQuery Image(String url, Boolean memCache)
         {
             var hash = url.GetHashCode();
 
             if (_imageCache.ContainsKey(hash))
                 return Image(_imageCache[hash]);
 
-            var response = await Unirest.get(url).asBinaryAsync();
-            var bitmap = await BitmapFactory.DecodeStreamAsync(response.Body);
-            _imageCache.Add(hash, bitmap);
-            return Image(bitmap);
+            ThreadPool.QueueUserWorkItem(e =>
+            {
+                var response = Unirest.get(url).asBinary();
+                var bitmap = BitmapFactory.DecodeStream(response.Body);
+                _imageCache.Add(hash, bitmap);
+                Image(bitmap);
+            });
+
+            return this;
         }
     }
 }
